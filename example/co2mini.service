@@ -1,0 +1,10 @@
+[Unit]
+Description = co2mini send to dogstatsd
+
+[Service]
+ExecStart = /usr/local/sbin/co2mini
+Restart = always
+Type = simple
+
+[Install]
+WantedBy = multi-user.target
