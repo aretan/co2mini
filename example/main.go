@@ -1,10 +1,9 @@
 package main
 
 import (
+    "github.com/DataDog/datadog-go/statsd"
     "github.com/gashirar/co2mini"
-    "github.com/rs/zerolog"
-    "github.com/rs/zerolog/log"
-    "math"
+    "log"
 )
 
 func main() {
@@ -12,26 +11,30 @@ func main() {
     var co2 int
     var temp float64
 
-    zerolog.TimeFieldFormat = ""
-
     if err := co2mini.Connect(); err != nil {
-        log.Fatal().Err(err).Msg("")
+        log.Fatal(err)
     }
 
+    dogstatsd, err := statsd.New("127.0.0.1:8125",
+        statsd.WithNamespace("co2mini."),
+    )
+
+    if err != nil {
+        log.Fatal(err)
+    }
+	
     go func() {
         if err := co2mini.Start(); err != nil {
-            log.Fatal().Err(err).Msg("")
+            log.Fatal(err)
         }
     }()
 
     for {
         select {
         case co2 = <-co2mini.Co2Ch:
+		dogstatsd.Gauge("co2", float64(co2), []string{}, 1)
         case temp = <-co2mini.TempCh:
-            log.Log().
-                Int("co2", co2).
-                Float64("temp", math.Round(temp*10)/10).
-                Msg("")
+		dogstatsd.Gauge("temp", float64(temp), []string{}, 1)
         }
     }
 }
